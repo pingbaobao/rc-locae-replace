@@ -310,10 +310,9 @@ function replaceTemplate(str = '', data = []) {
         if (i18nMap[word]) {
             replace = i18nMap[word]
         } else {
-            if (mode == 1) i18nMap2[word] = prefix + globalData.id + suffix
-            i18nMap[word] = prefix + globalData.id + suffix
-            replace = prefix + globalData.id + suffix
-            globalData.id++
+            if (mode == 1) i18nMap2[word] = prefix + word + suffix
+            i18nMap[word] = prefix + word + suffix
+            replace = prefix + word + suffix
         }
 
         switch (item.type) {
@@ -362,17 +361,15 @@ function replaceScript(str = '', data = []) {
         if (i18nMap[word]) {
             replace = i18nMap[word]
         } else {
-            if (mode == 1) i18nMap2[word] = prefix + globalData.id + suffix
-            i18nMap[word] = prefix + globalData.id + suffix
-            replace = prefix + globalData.id + suffix
-            globalData.id++
+            if (mode == 1) i18nMap2[word] = prefix + word + suffix
+            i18nMap[word] = prefix + word + suffix
+            replace = prefix + word + suffix
+            // globalData.id++
         }
         
         if (word == s) {
-            s = `${pluginPrefix}('${replace}')`
+            s = `intl.formatMessage({id: ${replace}, defaultMessage: ${word}})`
         } else {
-            // eslint-disable-next-line no-useless-concat
-            // s = '`' + s.replace(word, '{' + `${pluginPrefix}('${replace}')` + '}') + '`'
             // eslint-disable-next-line no-useless-concat
             s = '`' + s.replace(word, '{' + `intl.formatMessage({id: ${replace}, defaultMessage: ${word}})` + '}') + '`'
         }
