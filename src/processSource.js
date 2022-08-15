@@ -369,10 +369,12 @@ function replaceScript(str = '', data = []) {
         }
         
         if (word == s) {
-            s = `this.${pluginPrefix}('${replace}')`
+            s = `${pluginPrefix}('${replace}')`
         } else {
             // eslint-disable-next-line no-useless-concat
-            s = '`' + s.replace(word, '${' + `this.${pluginPrefix}('${replace}')` + '}') + '`'
+            // s = '`' + s.replace(word, '{' + `${pluginPrefix}('${replace}')` + '}') + '`'
+            // eslint-disable-next-line no-useless-concat
+            s = '`' + s.replace(word, '{' + `intl.formatMessage({id: ${replace}, defaultMessage: ${word}})` + '}') + '`'
         }
 
         if (item.isJSX) {
