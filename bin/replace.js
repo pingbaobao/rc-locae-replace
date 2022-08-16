@@ -3,7 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const processSource = require('../src/processSource')
 const generateI18nData = require('../src/generate')
-const i18nConfig = require(`${process.cwd()}/i18n.config`)
+const i18nConfig = require(`${process.cwd()}/local-replace.config`)
 const { setDefaultData, isInclude, isExclude } = require('../src/utils')
 const config = i18nConfig || {}
 const exclude = i18nConfig.exclude || []
@@ -16,7 +16,7 @@ setDefaultData(config).then(() => {
 
     if (fs.lstatSync(entry).isDirectory()) {
         readDir(entry)
-    } else if (/(\.vue)|(\.js)$/.test(entry) || (config.extra && config.extra.test(entry))) {
+    } else if (/(\.tsx)|(\.ts)$/.test(entry) || (config.extra && config.extra.test(entry))) {
         readFile(entry, ++id)
     }
 })
@@ -37,7 +37,7 @@ function readDir(fileName, isRead) {
             } else {
                 if (isExclude(exclude, file)) return
                 if (isInclude(include, file) || isRead) {
-                    if (/(\.vue)|(\.js)$/.test(name) || (config.extra && config.extra.test(name))) {
+                    if (/(\.tsx)|(\.ts)$/.test(name) || (config.extra && config.extra.test(name))) {
                         readFile(`${fileName}/${file}`, ++id)
                     }
                 }
@@ -58,7 +58,7 @@ function readFile(fileName, curID) {
                 if (!done.includes(false)) {
                     generateI18nData().then(data => {
                         fs.writeFile(
-                            path.resolve(process.cwd(), config.output? config.output : 'i18n.data.js'), 
+                            path.resolve(process.cwd(), config.output? config.output : 'local-replace-data.js'), 
                             'module.exports = ' + JSON.stringify(data, null, config.indent? config.indent : 4), 
                             'utf-8', 
                             err => {

@@ -48,7 +48,7 @@ async function setDefaultData(config = {}) {
         } else {
             load = require('./loader')
         }
-        
+
         globalData.i18nMap = await new Promise(reslove => {
             load(path.resolve(process.cwd(), config.mapFile), reslove)
         })
@@ -73,9 +73,19 @@ function isExclude(exclude = [], file = '') {
     return false
 }
 
+function convertStringToCamelCase(sentence) {
+    return sentence.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g,
+        (camelCaseMatch, i) => {
+            if (+camelCaseMatch === 0) { return '' }
+            return i === 0 ? camelCaseMatch.toLowerCase()
+                : camelCaseMatch.toUpperCase()
+        })
+}
+
 module.exports = {
     throttle,
     setDefaultData,
     isInclude,
     isExclude,
+    convertStringToCamelCase,
 }

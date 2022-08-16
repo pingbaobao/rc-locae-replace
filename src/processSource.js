@@ -1,9 +1,20 @@
 const { globalData } = require('./data')
-let i18nMap, i18nMap2, prefix, suffix, mode, pluginPrefix
+const { translate } = require('./translate')
+const { throttle, convertStringToCamelCase } = require('./utils')
+const ProgressBar = require('progress')
+let i18nMap, prefix, suffix, mode, pluginPrefix, i18nMapEn
+
+function waitTime(time) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(true)
+        }, time)
+    })
+}
 
 async function processSource(code = '') {
     i18nMap = globalData.i18nMap
-    i18nMap2 = globalData.i18nMap2
+    i18nMapEn = globalData.i18nMapEn
     prefix = globalData.prefix
     suffix = globalData.suffix
     mode = globalData.mode
@@ -18,10 +29,17 @@ async function processSource(code = '') {
         arr = code.split('\n')
         separator = '\n'
     }
-
     _processSource(arr, true)
-    _processSource(arr)
-    
+    const translateLength = _processSource(arr)
+    console.log(translateLength, 'translateLength')
+    // 进度条
+    const bar = new ProgressBar('translating [:bar] :percent :etas', { total: translateLength })
+    bar.tick()
+    const timer = setInterval(() => {
+        bar.tick()
+    }, globalData.delay)
+    await waitTime(globalData.delay*translateLength)
+    clearInterval(timer)
     return arr.join(separator)
 }
 
@@ -33,11 +51,11 @@ function _processSource(data = [], isTemplate = false) {
             if (/^<template>/.test(data[index++].trim())) break
         }
     }
-
     const reg1 = /[\u4e00-\u9fa5]/
     const reg2 = /[\u4e00-\u9fa5]|[\u3002\uff1b\uff0c\uff1a\u201c\u201d\uff08\uff09\u3001\uff1f\u300a\u300b]|-|\d/
     const symbols = ['—', '【', '】', '！']
     let hasMulNote = false // 是否有多行注释
+    let translateNumber = 0
     while (index < len) {
         if (isTemplate) {
             if (/^<script>/.test(data[index].trim())) break
@@ -92,7 +110,7 @@ function _processSource(data = [], isTemplate = false) {
                 if (i + 2 >= l) break
                 i += 2
             }
-            
+
             // 单行注释
             if (str[i] == '/' && str[i + 1] == '/') break
 
@@ -114,11 +132,18 @@ function _processSource(data = [], isTemplate = false) {
         if (isTemplate) {
             data[index] = extractTemplate(data[index], arr, index)
         } else {
-            data[index] = extractScript(data[index], arr, index)
+            if (arr.length) {
+                translateNumber+=1
+            }
+            // eslint-disable-next-line no-loop-func
+            extractScript(data[index], arr, index).then(res => {
+                // console.log(index,'index')
+                data[res.index] = res.data
+            })
         }
-        
         index++
     }
+    return translateNumber
 }
 
 function extractTemplate(str = '', replaceData = []) {
@@ -135,7 +160,7 @@ function extractTemplate(str = '', replaceData = []) {
             while (str[start] == ' ') {
                 start--
             }
-            
+
             if (start < 0) {
                 start = item.start
                 break
@@ -245,8 +270,8 @@ function checkJSX(str = '', end = 0) {
     return false
 }
 
-function extractScript(str = '', replaceData = []) {
-    if (!replaceData.length) return str
+async function extractScript(str = '', replaceData = [], index) {
+    if (!replaceData.length) return Promise.resolve(str)
 
     const arr = []
     replaceData.forEach(item => {
@@ -255,11 +280,15 @@ function extractScript(str = '', replaceData = []) {
         let end = item.end
         // 中文两边是否有 ' " ` 等符号
         let hasSymbol = false
+        let isAttribute = false
         while (start >= 0) {
             // <input> 中文
             if (isJSX && str[start] == '>') {
                 start++
                 break
+            }
+            if (str[start-1]==':'||(str[start-1]==' '&&str[start-2]==':')||str[start-1]=='(') {
+                isAttribute = true
             }
 
             if (str[start] == '"' || str[start] == '\'' || str[start] == '`') {
@@ -285,18 +314,23 @@ function extractScript(str = '', replaceData = []) {
 
             end++
         }
-        
+
         if (end == str.length) end = item.end
 
         arr.push({
             isJSX,
             hasSymbol,
+            isAttribute,
             word: str.slice(item.start, item.end + 1),
             source: str.slice(start, end + 1),
         })
     })
 
-    return replaceScript(str, arr)
+    const res = await replaceScript(str, arr)
+    return Promise.resolve({
+        data: res,
+        index,
+    })
 }
 
 function replaceTemplate(str = '', data = []) {
@@ -306,11 +340,10 @@ function replaceTemplate(str = '', data = []) {
         let temp
         let replace
         const word = item.word
-        
+
         if (i18nMap[word]) {
             replace = i18nMap[word]
         } else {
-            if (mode == 1) i18nMap2[word] = prefix + word + suffix
             i18nMap[word] = prefix + word + suffix
             replace = prefix + word + suffix
         }
@@ -327,7 +360,7 @@ function replaceTemplate(str = '', data = []) {
                 } else {
                     s = `${pluginPrefix}('${replace}')`
                 }
-                
+
                 break
             case 2:
                 temp = s.slice(s.indexOf(word) + word.length, s.length - 1)
@@ -336,52 +369,67 @@ function replaceTemplate(str = '', data = []) {
                 } else {
                     s = `:${s.slice(0, s.indexOf(word))}${pluginPrefix}('${replace}')"`
                 }
-                
+
                 break
         }
 
         result = result.replace(item.source, s)
     })
-    
+
     return result
 }
 
 function replaceScript(str = '', data = []) {
     let result = str
-    data.forEach(item => {
-        const word = item.word
-        let s
-        let replace
-        if (item.hasSymbol) {
-            s = item.source.slice(1, item.source.length - 1)
-        } else {
-            s = item.source
-        }
+    return new Promise(resolve => {
+        data.forEach((item, i) => {
+            const word = item.word
+            let s
+            let replace
+            let translateWord
+            if (item.hasSymbol) {
+                s = item.source.slice(1, item.source.length - 1)
+            } else {
+                s = item.source
+            }
+            throttle(() => {
+                translate(word).then(res => {
+                    if (res) {
+                        translateWord = res[0].dst
+                    } else {
+                        translateWord = word
+                    }
+                    if (i18nMap[word]) {
+                        replace = i18nMap[word]
+                    } else {
+                        i18nMap[ prefix + convertStringToCamelCase(translateWord) + suffix] = word
+                        i18nMapEn[ prefix + convertStringToCamelCase(translateWord) + suffix] = translateWord
+                        replace = prefix + convertStringToCamelCase(translateWord) + suffix
+                    }
+                    // if (word == s) {
+                    //     s = `intl.formatMessage({id: '${replace}', defaultMessage: '${word}'})`
+                    // } else {
+                    //     // eslint-disable-next-line no-useless-concat
+                    //     s = s.replace(word, '{' + `intl.formatMessage({id: '${replace}', defaultMessage: '${word}'})` + '}')
+                    // }
 
-        if (i18nMap[word]) {
-            replace = i18nMap[word]
-        } else {
-            if (mode == 1) i18nMap2[word] = prefix + word + suffix
-            i18nMap[word] = prefix + word + suffix
-            replace = prefix + word + suffix
-            // globalData.id++
-        }
-        
-        if (word == s) {
-            s = `intl.formatMessage({id: ${replace}, defaultMessage: ${word}})`
-        } else {
-            // eslint-disable-next-line no-useless-concat
-            s = '`' + s.replace(word, '{' + `intl.formatMessage({id: ${replace}, defaultMessage: ${word}})` + '}') + '`'
-        }
-
-        if (item.isJSX) {
-            s = '{' + s + '}'
-        }
-
-        result = result.replace(item.source, s)
+                    // if (item.isJSX) {
+                    //     s = '{' + s + '}'
+                    // }
+                    if (item.isAttribute) {
+                        s = s.replace(word, `intl.formatMessage({id: '${replace}', defaultMessage: '${word}'})`)
+                    } else {
+                        // eslint-disable-next-line no-useless-concat
+                        s = s.replace(word, '{' + `intl.formatMessage({id: '${replace}', defaultMessage: '${word}'})` + '}')
+                    }
+                    result = result.replace(item.source, s)
+                    if (i == data.length - 1) {
+                        resolve(result)
+                    }
+                })
+            })
+        })
     })
-
-    return result
 }
 
 module.exports = processSource
