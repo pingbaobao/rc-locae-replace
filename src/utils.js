@@ -69,7 +69,6 @@ function isExclude(exclude = [], file = '') {
     for (let i = 0, len = exclude.length; i < len; i++) {
         if (exclude[i].split('/').pop().includes(file)) return true
     }
-
     return false
 }
 

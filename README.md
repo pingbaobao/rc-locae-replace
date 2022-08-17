@@ -12,7 +12,7 @@
 module.exports = {
     delay: 1500, // 自动翻译延时，必须大于 1000 ms，否则调用百度翻译 API 会失败, 土豪绕过
     mapFile: '', // 需要生成默认 map 的文件
-    appid: '', // 百度翻译 appid
+    appid: '', // 百度翻译 appid, 免费个人拥护每月5万字符
     key: '', // 百度翻译密钥
     output: 'local-replace-data.js', // i18n 输出文件
     indent: 4, // i18n 输出文件缩进
@@ -23,7 +23,7 @@ module.exports = {
     loader: 'loader.js',
     include: [], // 需要翻译的目录或文件
     exclude: [], // 不需要翻译的目录或文件 如果 exclude include 同时存在同样的目录或文件 则 exclude 优先级高
-    extra: /(\.tsx)|(\.ts)$/, // 默认支持 .vue 和 .js 文件 如果需要支持其他类型的文件，请用正则描述 例如这个示例额外支持 .a .b 文件
+    extra: /(\.tsx)|(\.ts)$/, // 默认支持 .vue 和 .js 文件 如果需要支持其他类型的文件，请用正则描述 例如这个示例额外支持 .tsx .ts 文件
 }
 ```
 需要翻译功能，一般只需要填入 appid、key， 请自行注册

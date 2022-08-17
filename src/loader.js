@@ -7,7 +7,6 @@ function loader(file, done) {
             result[mapData[key]] = key
         })
     }
-
     done(result)
 }
 

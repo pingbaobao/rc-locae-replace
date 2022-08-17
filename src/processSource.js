@@ -2,7 +2,7 @@ const { globalData } = require('./data')
 const { translate } = require('./translate')
 const { throttle, convertStringToCamelCase } = require('./utils')
 const ProgressBar = require('progress')
-let i18nMap, prefix, suffix, mode, pluginPrefix, i18nMapEn
+let i18nMap, prefix, suffix, pluginPrefix, i18nMapEn
 
 function waitTime(time) {
     return new Promise((resolve) => {
@@ -17,7 +17,6 @@ async function processSource(code = '') {
     i18nMapEn = globalData.i18nMapEn
     prefix = globalData.prefix
     suffix = globalData.suffix
-    mode = globalData.mode
     pluginPrefix = globalData.pluginPrefix
 
     let arr
@@ -31,7 +30,6 @@ async function processSource(code = '') {
     }
     _processSource(arr, true)
     const translateLength = _processSource(arr)
-    console.log(translateLength, 'translateLength')
     // 进度条
     const bar = new ProgressBar('translating [:bar] :percent :etas', { total: translateLength })
     bar.tick()
@@ -402,20 +400,10 @@ function replaceScript(str = '', data = []) {
                     if (i18nMap[word]) {
                         replace = i18nMap[word]
                     } else {
-                        i18nMap[ prefix + convertStringToCamelCase(translateWord) + suffix] = word
-                        i18nMapEn[ prefix + convertStringToCamelCase(translateWord) + suffix] = translateWord
+                        i18nMap[prefix + convertStringToCamelCase(translateWord) + suffix] = word
+                        i18nMapEn[prefix + convertStringToCamelCase(translateWord) + suffix] = translateWord
                         replace = prefix + convertStringToCamelCase(translateWord) + suffix
                     }
-                    // if (word == s) {
-                    //     s = `intl.formatMessage({id: '${replace}', defaultMessage: '${word}'})`
-                    // } else {
-                    //     // eslint-disable-next-line no-useless-concat
-                    //     s = s.replace(word, '{' + `intl.formatMessage({id: '${replace}', defaultMessage: '${word}'})` + '}')
-                    // }
-
-                    // if (item.isJSX) {
-                    //     s = '{' + s + '}'
-                    // }
                     if (item.isAttribute) {
                         s = s.replace(word, `intl.formatMessage({id: '${replace}', defaultMessage: '${word}'})`)
                     } else {
