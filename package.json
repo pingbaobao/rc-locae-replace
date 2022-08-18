@@ -1,6 +1,6 @@
 {
   "name": "rc-locale-replace",
-  "version": "0.2.22",
+  "version": "0.2.25",
   "description": "前端国际化辅助工具——自动替换中文并翻译",
   "bin": {
     "rc-replace": "bin/replace.js"
@@ -43,5 +43,5 @@
     "husky": "^4.3.0",
     "jest": "^26.4.2"
   },
-  "main": "index.js"
+  "main": "bin/replace.js"
 }

@@ -50,7 +50,7 @@ function _processSource(data = [], isTemplate = false) {
         }
     }
     const reg1 = /[\u4e00-\u9fa5]/
-    const reg2 = /[\u4e00-\u9fa5]|[\u3002\uff1b\uff0c\uff1a\u201c\u201d\uff08\uff09\u3001\uff1f\u300a\u300b]|-|\d/
+    const reg2 = /[\u4e00-\u9fa5]|[\u3002\uff1b\uff0c\uff1a\u201c\u201d\uff08\uff09\u3001\uff1f\u300a\u300b]|-|\.|\/|\(|\)|\d/
     const symbols = ['—', '【', '】', '！']
     let hasMulNote = false // 是否有多行注释
     let translateNumber = 0
@@ -135,7 +135,6 @@ function _processSource(data = [], isTemplate = false) {
             }
             // eslint-disable-next-line no-loop-func
             extractScript(data[index], arr, index).then(res => {
-                // console.log(index,'index')
                 data[res.index] = res.data
             })
         }
@@ -270,7 +269,6 @@ function checkJSX(str = '', end = 0) {
 
 async function extractScript(str = '', replaceData = [], index) {
     if (!replaceData.length) return Promise.resolve(str)
-
     const arr = []
     replaceData.forEach(item => {
         let isJSX = checkJSX(str, item.start)
