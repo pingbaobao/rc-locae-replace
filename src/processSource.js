@@ -365,7 +365,6 @@ function replaceTemplate(str = '', data = []) {
                 } else {
                     s = `:${s.slice(0, s.indexOf(word))}${pluginPrefix}('${replace}')"`
                 }
-
                 break
         }
 
@@ -375,6 +374,7 @@ function replaceTemplate(str = '', data = []) {
     return result
 }
 
+// 替换中文为所需的字符串
 function replaceScript(str = '', data = []) {
     let result = str
     return new Promise(resolve => {
